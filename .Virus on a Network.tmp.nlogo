@@ -30,16 +30,17 @@ end
 
 
 to setup-ring
-  clear-all
+    clear-all
+
+  ask n-of initial-outbreak-size turtles
+    [ become-infected ]
+  ask links [ set color white ]
+  reset-ticks
    nw:generate-ring turtles links number-of-nodes [ set shape  "circle"
       become-susceptible
     set virus-check-timer random virus-check-frequency
   ]
   layout-circle sort turtles 20
-    ask n-of initial-outbreak-size turtles
-    [ become-infected ]
-  ask links [ set color white ]
-  reset-ticks
 end
 
 to setup-spatially-clustered-network
@@ -301,23 +302,6 @@ number-of-nodes - 1
 1
 NIL
 HORIZONTAL
-
-BUTTON
-756
-41
-844
-74
-NIL
-setup-ring
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 @#$#@#$#@
 ## WHAT IS IT?
