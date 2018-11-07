@@ -42,6 +42,24 @@ to setup-ring
   reset-ticks
 end
 
+to setup-mesh
+  clear-all
+  setup-nodes
+  setup-mesh-network
+  ask n-of initial-outbreak-size turtles
+    [ become-infected ]
+  ask links [ set color white ]
+  reset-ticks
+end
+
+to setup-mesh-network
+  ask turtles [
+    ask other turtles [
+      create-link-with myself
+    ]
+  ]
+end
+
 to setup-spatially-clustered-network
   let num-links (average-node-degree * number-of-nodes) / 2
   while [count links < num-links ]
@@ -309,6 +327,23 @@ BUTTON
 74
 NIL
 setup-ring
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+756
+79
+852
+112
+NIL
+setup-mesh
 NIL
 1
 T
@@ -683,7 +718,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.4
+NetLogo 6.0.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
