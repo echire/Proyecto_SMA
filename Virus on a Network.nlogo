@@ -28,7 +28,6 @@ to setup-nodes
   ]
 end
 
-
 to setup-ring
   clear-all
    nw:generate-ring turtles links number-of-nodes [ set shape  "circle"
@@ -39,6 +38,22 @@ to setup-ring
     ask n-of initial-outbreak-size turtles
     [ become-infected ]
   ask links [ set color white ]
+  reset-ticks
+end
+
+to setup-tree
+  clear-all
+  set-default-shape turtles "circle"
+  create-turtles 2[
+    become-susceptible
+    set virus-check-timer random virus-check-frequency
+    fd 5
+  ]
+
+  ask turtle 0 [
+    create-link-with turtle 1
+  ]
+
   reset-ticks
 end
 
@@ -90,6 +105,36 @@ to go
   spread-virus
   do-virus-checks
   tick
+end
+
+to go-tree
+  if count turtles > number-of-nodes [
+    ask n-of initial-outbreak-size turtles
+    [ become-infected ]
+    stop
+  ]
+
+  let partner one-of [both-ends] of one-of links     ;; selecciona uno de los extremos  (los que tengan más links es mas probable que sean escogidos)
+
+  create-turtles 1[
+    become-susceptible
+    set virus-check-timer random virus-check-frequency
+    move-to partner
+    fd 1
+    create-link-with partner
+  ]
+  layout
+
+  tick
+end
+
+to layout
+ ask turtles [ set size 1 ]
+ layout-spring turtles links 0.2 2.0 0.5 ;; fuerza de retracción entre elementos del grafo para poder visualizarlos
+ ask turtles [
+    facexy 0 0
+    fd (distancexy 0 0) / 100
+  ]
 end
 
 to become-infected  ;; turtle procedure
@@ -269,7 +314,7 @@ number-of-nodes
 number-of-nodes
 10
 300
-25.0
+45.0
 5
 1
 NIL
@@ -338,10 +383,44 @@ NIL
 1
 
 BUTTON
-756
-79
+758
+81
+848
+114
+setup-tree
+setup-tree
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+760
+122
+833
+155
+go-tree
+go-tree
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
 852
-112
+42
+948
+75
 NIL
 setup-mesh
 NIL
@@ -718,7 +797,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.1
+NetLogo 6.0.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
