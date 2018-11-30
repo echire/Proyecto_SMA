@@ -5,13 +5,17 @@ turtles-own
   infected?           ;; if true, the turtle is infectious
   resistant?          ;; if true, the turtle can't be infected
   virus-check-timer   ;; number of ticks since this turtle's last virus-check
+  internet?
 ]
 
 to setup
   clear-all
   setup-nodes
   setup-spatially-clustered-network
-  ask n-of initial-outbreak-size turtles
+  let exposed-number count turtles with [internet? = true ]
+  let initial-outbreak initial-outbreak-size
+  if exposed-number < initial-outbreak-size [ set initial-outbreak exposed-number]
+  ask n-of initial-outbreak turtles with [internet? = true ]
     [ become-infected ]
   ask links [ set color white ]
   reset-ticks
@@ -146,7 +150,11 @@ end
 to become-susceptible  ;; turtle procedure
   set infected? false
   set resistant? false
-  set color blue
+  ifelse random 100 < gain-susceptible-chance
+  [ set internet? true
+  set color blue ]
+  [ set internet? false
+    set color yellow ]
 end
 
 to become-resistant  ;; turtle procedure
@@ -432,6 +440,21 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+764
+195
+962
+228
+gain-susceptible-chance
+gain-susceptible-chance
+0
+100
+8.0
+1
+1
+%
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -797,7 +820,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.2
+NetLogo 6.0.4
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
