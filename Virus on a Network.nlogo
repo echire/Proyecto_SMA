@@ -1,18 +1,26 @@
-extensions [nw ]
+extensions [nw]
 
 turtles-own
 [
   infected?           ;; if true, the turtle is infectious
   resistant?          ;; if true, the turtle can't be infected
   virus-check-timer   ;; number of ticks since this turtle's last virus-check
+  health
 ]
+
+; 0 = Sano
+; 1 = Inmunizado
+; 2 = Infectado
+; 3 = Infectado e Inmunizado (No se usa)
 
 to setup
   clear-all
   setup-nodes
   setup-spatially-clustered-network
   ask n-of initial-outbreak-size turtles
-    [ become-infected ]
+  [
+   become-infected random malwareTypes
+  ]
   ask links [ set color white ]
   reset-ticks
 end
@@ -36,7 +44,10 @@ to setup-ring
   ]
   layout-circle sort turtles 20
     ask n-of initial-outbreak-size turtles
-    [ become-infected ]
+  [
+    let infection random malwareTypes
+    become-infected infection
+  ]
   ask links [ set color white ]
   reset-ticks
 end
@@ -62,7 +73,10 @@ to setup-mesh
   setup-nodes
   setup-mesh-network
   ask n-of initial-outbreak-size turtles
-    [ become-infected ]
+  [
+    let infection random malwareTypes
+    become-infected infection
+  ]
   ask links [ set color white ]
   reset-ticks
 end
@@ -110,7 +124,10 @@ end
 to go-tree
   if count turtles > number-of-nodes [
     ask n-of initial-outbreak-size turtles
-    [ become-infected ]
+    [
+      let infection random malwareTypes
+      become-infected infection
+    ]
     stop
   ]
 
@@ -137,40 +154,60 @@ to layout
   ]
 end
 
-to become-infected  ;; turtle procedure
+to become-infected [ i ]  ;; turtle procedure
   set infected? true
   set resistant? false
+  let aux item i health
+  if aux != 1 [
+    set health replace-item i health 2
+  ]
   set color red
 end
 
 to become-susceptible  ;; turtle procedure
   set infected? false
   set resistant? false
+  set health n-values malwareTypes [0]
   set color blue
 end
 
-to become-resistant  ;; turtle procedure
-  set infected? false
-  set resistant? true
-  set color gray
-  ask my-links [ set color gray - 2 ]
+to become-resistant [ i ]  ;; turtle procedure
+  set health replace-item i health 1
+  if not member? 2 health [
+    set infected? false
+    set color gray
+    ask my-links [ set color gray - 2 ]
+  ]
 end
 
 to spread-virus
-  ask turtles with [infected?]
-    [ ask link-neighbors with [not resistant?]
-        [ if random-float 100 < virus-spread-chance
-            [ become-infected ] ] ]
+  ask turtles with [infected?] [
+    let i 0
+    foreach health [x ->
+      if x = 2 [
+        ask link-neighbors with [item i health != 1] [
+          if random-float 100 < virus-spread-chance [
+            become-infected i
+          ]
+        ]
+      ]
+      set i (i + 1)
+    ]
+  ]
 end
 
 to do-virus-checks
-  ask turtles with [infected? and virus-check-timer = 0]
-  [
-    if random 100 < recovery-chance
-    [
-      ifelse random 100 < gain-resistance-chance
-        [ become-resistant ]
-        [ become-susceptible ]
+  ask turtles with [infected? and virus-check-timer = 0 and color != white] [
+    if random 100 < recovery-chance [
+      if random 100 < gain-resistance-chance [
+        become-resistant random malwareTypes
+      ]
+      if random 100 < shutdownChance [
+        ask my-links [
+          die
+        ]
+        set color white
+      ]
     ]
   ]
 end
@@ -215,7 +252,7 @@ gain-resistance-chance
 gain-resistance-chance
 0.0
 100
-5.0
+48.0
 1
 1
 %
@@ -230,7 +267,7 @@ recovery-chance
 recovery-chance
 0.0
 10.0
-0.9
+4.8
 0.1
 1
 %
@@ -383,10 +420,10 @@ NIL
 1
 
 BUTTON
-758
-81
-848
-114
+954
+42
+1044
+75
 setup-tree
 setup-tree
 NIL
@@ -400,10 +437,10 @@ NIL
 1
 
 BUTTON
-760
-122
-833
-155
+1050
+42
+1123
+75
 go-tree
 go-tree
 T
@@ -432,6 +469,62 @@ NIL
 NIL
 NIL
 1
+
+INPUTBOX
+757
+115
+918
+175
+malwareTypes
+5.0
+1
+0
+Number
+
+BUTTON
+757
+79
+821
+112
+step
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+PLOT
+945
+84
+1321
+411
+Malware type prevalence
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" "let i 0\nrepeat malwareTypes [\n  create-temporary-plot-pen (word i)\n  plotxy ticks (count turtles with [item i health = 2 and color != white])\n  set-plot-pen-color (i * 10 + 5)\n  set i (i + 1)\n]"
+PENS
+
+INPUTBOX
+757
+180
+918
+240
+shutdownChance
+10.0
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -797,7 +890,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.2
+NetLogo 6.0.4
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
