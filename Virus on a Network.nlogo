@@ -11,6 +11,7 @@ turtles-own
   resistant?          ;; if true, the turtle can't be infected
   virus-check-timer   ;; number of ticks since this turtle's last virus-check
   internet?
+  type-infection ;; to change infected, we can attribute a default virus, else a virus name. If no infection just put a void string ""
 ]
 
 to setup
@@ -115,7 +116,9 @@ to go
 
    if (launch-attack?) and iter-attack > 0
   [set iter-attack iter-attack - 1
-   try-to-infect
+   ifelse type-of-virus?
+    [ try-to-infect-virus-type ]
+    [ try-to-infect ]
   ]
 
   tick
@@ -165,6 +168,13 @@ to propage-infected  ;; turtle procedure
   set color red
 end
 
+to propage-infected-virus-type [ virus-type ]  ;;if we have select the option type of virus it exists different virus
+  set infected? true
+  set type-infection virus-type
+  set resistant? false
+  set color red
+end
+
 to become-susceptible-init  ;; turtle procedure
   set infected? false
   set resistant? false
@@ -192,9 +202,13 @@ end
 
 to spread-virus
   ask turtles with [infected?]
-    [ ask link-neighbors with [not resistant?]
+  [ let get-type-infection type-infection
+    ask link-neighbors with [not resistant?]
         [ if random-float 100 < virus-spread-chance
-            [ propage-infected ] ] ]
+            [
+          ifelse type-of-virus?
+          [ propage-infected-virus-type get-type-infection ]
+          [ propage-infected ] ] ] ]
 end
 
 to do-virus-checks
@@ -218,6 +232,18 @@ to try-to-infect
   [
     if random 100 < proba-infect [
       set infected? true
+      set resistant? false
+      set color red
+    ]
+  ]
+end
+
+to try-to-infect-virus-type
+  ask turtles with [internet? = true and infected? = false and resistant? = false]
+  [
+    if random 100 < proba-infect [
+     set infected? true
+      set type-infection virus
       set resistant? false
       set color red
     ]
@@ -564,6 +590,17 @@ proba-infect
 1
 %
 HORIZONTAL
+
+SWITCH
+1065
+197
+1199
+230
+type-of-virus?
+type-of-virus?
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
