@@ -1,5 +1,10 @@
 extensions [nw ]
 
+globals
+[
+  iter-attack
+]
+
 turtles-own
 [
   infected?           ;; if true, the turtle is infectious
@@ -18,6 +23,7 @@ to setup
   ask n-of initial-outbreak turtles with [internet? = true ]
     [ become-infected ]
   ask links [ set color white ]
+  set iter-attack 0
   reset-ticks
 end
 
@@ -27,7 +33,7 @@ to setup-nodes
   [
     ; for visual reasons, we don't put any nodes *too* close to the edges
     setxy (random-xcor * 0.95) (random-ycor * 0.95)
-    become-susceptible
+    become-susceptible-init
     set virus-check-timer random virus-check-frequency
   ]
 end
@@ -35,7 +41,7 @@ end
 to setup-ring
   clear-all
    nw:generate-ring turtles links number-of-nodes [ set shape  "circle"
-      become-susceptible
+      become-susceptible-init
     set virus-check-timer random virus-check-frequency
   ]
   layout-circle sort turtles 20
@@ -49,7 +55,7 @@ to setup-tree
   clear-all
   set-default-shape turtles "circle"
   create-turtles 2[
-    become-susceptible
+    become-susceptible-init
     set virus-check-timer random virus-check-frequency
     fd 5
   ]
@@ -98,8 +104,6 @@ to setup-spatially-clustered-network
 end
 
 to go
-  if all? turtles [not infected?]
-    [ stop ]
   ask turtles
   [
      set virus-check-timer virus-check-timer + 1
@@ -108,6 +112,12 @@ to go
   ]
   spread-virus
   do-virus-checks
+
+   if (launch-attack?) and iter-attack > 0
+  [set iter-attack iter-attack - 1
+   try-to-infect
+  ]
+
   tick
 end
 
@@ -121,7 +131,7 @@ to go-tree
   let partner one-of [both-ends] of one-of links     ;; selecciona uno de los extremos  (los que tengan más links es mas probable que sean escogidos)
 
   create-turtles 1[
-    become-susceptible
+    become-susceptible-init
     set virus-check-timer random virus-check-frequency
     move-to partner
     fd 1
@@ -142,12 +152,20 @@ to layout
 end
 
 to become-infected  ;; turtle procedure
+  if launch-attack? = false [
+  set infected? true
+  set resistant? false
+  set color red
+  ]
+end
+
+to propage-infected  ;; turtle procedure
   set infected? true
   set resistant? false
   set color red
 end
 
-to become-susceptible  ;; turtle procedure
+to become-susceptible-init  ;; turtle procedure
   set infected? false
   set resistant? false
   ifelse random 100 < gain-susceptible-chance
@@ -155,6 +173,14 @@ to become-susceptible  ;; turtle procedure
   set color blue ]
   [ set internet? false
     set color yellow ]
+end
+
+to become-susceptible
+  set infected? false
+  set resistant? false
+  ifelse internet?
+  [ set color blue ]
+  [ set color yellow ]
 end
 
 to become-resistant  ;; turtle procedure
@@ -168,7 +194,7 @@ to spread-virus
   ask turtles with [infected?]
     [ ask link-neighbors with [not resistant?]
         [ if random-float 100 < virus-spread-chance
-            [ become-infected ] ] ]
+            [ propage-infected ] ] ]
 end
 
 to do-virus-checks
@@ -179,6 +205,21 @@ to do-virus-checks
       ifelse random 100 < gain-resistance-chance
         [ become-resistant ]
         [ become-susceptible ]
+    ]
+  ]
+end
+
+to launch-an-attack
+  set iter-attack attack-duration
+end
+
+to try-to-infect
+  ask turtles with [internet? = true and infected? = false and resistant? = false]
+  [
+    if random 100 < proba-infect [
+      set infected? true
+      set resistant? false
+      set color red
     ]
   ]
 end
@@ -450,7 +491,75 @@ gain-susceptible-chance
 gain-susceptible-chance
 0
 100
-8.0
+37.0
+1
+1
+%
+HORIZONTAL
+
+SWITCH
+767
+268
+903
+301
+launch-attack?
+launch-attack?
+0
+1
+-1000
+
+BUTTON
+764
+327
+889
+360
+NIL
+launch-an-attack
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+934
+269
+1106
+302
+attack-duration
+attack-duration
+0
+50
+5.0
+1
+1
+NIL
+HORIZONTAL
+
+CHOOSER
+946
+324
+1084
+369
+virus
+virus
+"virus-a" "virus-b" "virus-c"
+0
+
+SLIDER
+778
+400
+950
+433
+proba-infect
+proba-infect
+0
+100
+4.0
 1
 1
 %
