@@ -1,3 +1,5 @@
+globals [number-ring]
+
 extensions [nw]
 
 turtles-own
@@ -6,6 +8,7 @@ turtles-own
   resistant?          ;; if true, the turtle can't be infected
   virus-check-timer   ;; number of ticks since this turtle's last virus-check
   health
+  internet?
 ]
 
 ; 0 = Sano
@@ -17,9 +20,9 @@ to setup
   clear-all
   setup-nodes
   setup-spatially-clustered-network
-  ask n-of initial-outbreak-size turtles
+  ask n-of initial-outbreak-size turtles with [internet?]
   [
-   become-infected random malwareTypes
+   ;become-infected random malwareTypes
   ]
   ask links [ set color white ]
   reset-ticks
@@ -31,22 +34,23 @@ to setup-nodes
   [
     ; for visual reasons, we don't put any nodes *too* close to the edges
     setxy (random-xcor * 0.95) (random-ycor * 0.95)
-    become-susceptible
+    become-susceptible-init
     set virus-check-timer random virus-check-frequency
   ]
 end
 
 to setup-ring
   clear-all
-   nw:generate-ring turtles links number-of-nodes [ set shape  "circle"
-      become-susceptible
+  set number-ring number-of-nodes / 3
+   nw:generate-ring turtles links number-ring [ set shape  "circle"
+      become-susceptible-init
     set virus-check-timer random virus-check-frequency
   ]
   layout-circle sort turtles 20
     ask n-of initial-outbreak-size turtles
   [
     let infection random malwareTypes
-    become-infected infection
+    ;become-infected infection
   ]
   ask links [ set color white ]
   reset-ticks
@@ -56,7 +60,7 @@ to setup-tree
   clear-all
   set-default-shape turtles "circle"
   create-turtles 2[
-    become-susceptible
+    become-susceptible-init
     set virus-check-timer random virus-check-frequency
     fd 5
   ]
@@ -75,7 +79,7 @@ to setup-mesh
   ask n-of initial-outbreak-size turtles
   [
     let infection random malwareTypes
-    become-infected infection
+    ;become-infected infection
   ]
   ask links [ set color white ]
   reset-ticks
@@ -126,7 +130,7 @@ to go-tree
     ask n-of initial-outbreak-size turtles
     [
       let infection random malwareTypes
-      become-infected infection
+      ;become-infected infection
     ]
     stop
   ]
@@ -134,7 +138,7 @@ to go-tree
   let partner one-of [both-ends] of one-of links     ;; selecciona uno de los extremos  (los que tengan más links es mas probable que sean escogidos)
 
   create-turtles 1[
-    become-susceptible
+    become-susceptible-init
     set virus-check-timer random virus-check-frequency
     move-to partner
     fd 1
@@ -143,6 +147,24 @@ to go-tree
   layout
 
   tick
+end
+
+to go-ring
+  let number-tree number-of-nodes - number-ring
+  if count turtles > number-of-nodes [stop]
+
+  let partner one-of turtles    ;; selecciona uno de los extremos  (los que tengan más links es mas probable que sean escogidos)
+
+  create-turtles 1[
+    set shape "circle"
+    move-to partner
+    fd 1
+    create-link-with partner
+    set color blue
+    become-susceptible-init
+  ]
+  layout
+
 end
 
 to layout
@@ -169,6 +191,17 @@ to become-susceptible  ;; turtle procedure
   set resistant? false
   set health n-values malwareTypes [0]
   set color blue
+end
+
+to become-susceptible-init  ;; turtle procedure
+  set infected? false
+  set resistant? false
+  set health n-values malwareTypes [0]
+  ifelse random 100 < gain-susceptible-chance
+  [ set internet? true
+  set color blue ]
+  [ set internet? false
+    set color yellow ]
 end
 
 to become-resistant [ i ]  ;; turtle procedure
@@ -212,6 +245,43 @@ to do-virus-checks
   ]
 end
 
+to launch-specific-attack
+  if malwareToInfect < (malwareTypes + 1) [
+    ifelse onlyAttackInternet [
+      repeat attack-duration [
+        ask turtles with [internet?] [
+          if random 100 < prob-infect [
+            become-infected (malwareToInfect - 1)
+          ]
+        ]
+      ]
+    ]
+    [
+      ask n-of initial-outbreak-size turtles [
+      if random 100 < prob-infect [
+        become-infected (random malwareTypes)
+      ]
+    ]
+    ]
+  ]
+end
+
+to launch-random-attack
+  ifelse onlyAttackInternet [
+    ask turtles with [internet?] [
+      if random 100 < prob-infect [
+        become-infected (malwareToInfect - 1)
+      ]
+    ]
+  ]
+  [
+    ask n-of initial-outbreak-size turtles [
+      if random 100 < prob-infect [
+        become-infected (random malwareTypes)
+      ]
+    ]
+  ]
+end
 
 ; Copyright 2008 Uri Wilensky.
 ; See Info tab for full copyright and license.
@@ -351,7 +421,7 @@ number-of-nodes
 number-of-nodes
 10
 300
-45.0
+140.0
 5
 1
 NIL
@@ -403,10 +473,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-756
-41
-844
-74
+1031
+45
+1119
+78
 NIL
 setup-ring
 NIL
@@ -420,10 +490,10 @@ NIL
 1
 
 BUTTON
-954
-42
-1044
-75
+859
+45
+949
+78
 setup-tree
 setup-tree
 NIL
@@ -437,10 +507,10 @@ NIL
 1
 
 BUTTON
-1050
-42
-1123
-75
+955
+45
+1028
+78
 go-tree
 go-tree
 T
@@ -454,10 +524,10 @@ NIL
 1
 
 BUTTON
-852
-42
-948
-75
+757
+45
+853
+78
 NIL
 setup-mesh
 NIL
@@ -525,6 +595,120 @@ shutdownChance
 1
 0
 Number
+
+SLIDER
+945
+413
+1178
+446
+gain-susceptible-chance
+gain-susceptible-chance
+0
+100
+50.0
+1
+1
+NIL
+HORIZONTAL
+
+INPUTBOX
+756
+355
+917
+415
+malwareToInfect
+2.0
+1
+0
+Number
+
+BUTTON
+742
+254
+931
+287
+NIL
+launch-specific-attack
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+INPUTBOX
+756
+292
+917
+352
+attack-duration
+3.0
+1
+0
+Number
+
+SLIDER
+949
+465
+1121
+498
+prob-infect
+prob-infect
+0
+100
+50.0
+1
+1
+%
+HORIZONTAL
+
+BUTTON
+741
+419
+931
+452
+NIL
+launch-random-attack
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
+742
+456
+931
+489
+onlyAttackInternet
+onlyAttackInternet
+1
+1
+-1000
+
+BUTTON
+1125
+45
+1196
+78
+NIL
+go-ring
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -890,7 +1074,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.4
+NetLogo 6.0.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
