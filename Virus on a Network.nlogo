@@ -1,4 +1,4 @@
-globals [number-ring]
+globals [number-ring numLinks]
 
 extensions [nw]
 
@@ -126,45 +126,52 @@ to go
 end
 
 to go-tree
-  if count turtles > number-of-nodes [
-    ask n-of initial-outbreak-size turtles
-    [
-      let infection random malwareTypes
-      ;become-infected infection
+  while [true] [
+    if count turtles > number-of-nodes [
+      ask n-of initial-outbreak-size turtles
+      [
+        let infection random malwareTypes
+        ;become-infected infection
+      ]
+      reset-ticks
+      stop
     ]
-    stop
+
+    let partner one-of [both-ends] of one-of links     ;; selecciona uno de los extremos  (los que tengan más links es mas probable que sean escogidos)
+
+    create-turtles 1[
+      become-susceptible-init
+      set virus-check-timer random virus-check-frequency
+      move-to partner
+      fd 1
+      create-link-with partner
+    ]
+    layout
+    tick
   ]
-
-  let partner one-of [both-ends] of one-of links     ;; selecciona uno de los extremos  (los que tengan más links es mas probable que sean escogidos)
-
-  create-turtles 1[
-    become-susceptible-init
-    set virus-check-timer random virus-check-frequency
-    move-to partner
-    fd 1
-    create-link-with partner
-  ]
-  layout
-
-  tick
 end
 
 to go-ring
-  let number-tree number-of-nodes - number-ring
-  if count turtles > number-of-nodes [stop]
+  while [true] [
+    let number-tree number-of-nodes - number-ring
+    if count turtles > number-of-nodes [
+      reset-ticks
+      stop
+    ]
 
-  let partner one-of turtles    ;; selecciona uno de los extremos  (los que tengan más links es mas probable que sean escogidos)
+    let partner one-of turtles    ;; selecciona uno de los extremos  (los que tengan más links es mas probable que sean escogidos)
 
-  create-turtles 1[
-    set shape "circle"
-    move-to partner
-    fd 1
-    create-link-with partner
-    set color blue
-    become-susceptible-init
+    create-turtles 1[
+      set shape "circle"
+      move-to partner
+      fd 1
+      create-link-with partner
+      set color blue
+      become-susceptible-init
+    ]
+    layout
+    tick
   ]
-  layout
-
 end
 
 to layout
@@ -248,35 +255,31 @@ end
 to launch-specific-attack
   if malwareToInfect < (malwareTypes + 1) [
     ifelse onlyAttackInternet [
-      repeat attack-duration [
-        ask turtles with [internet?] [
-          if random 100 < prob-infect [
-            become-infected (malwareToInfect - 1)
-          ]
+      ask turtles with [internet?] [
+        if random 100 < prob-infect [
+          become-infected (malwareToInfect - 1)
         ]
       ]
     ]
     [
       ask n-of initial-outbreak-size turtles [
-      if random 100 < prob-infect [
         become-infected (random malwareTypes)
       ]
-    ]
     ]
   ]
 end
 
 to launch-random-attack
-  ifelse onlyAttackInternet [
-    ask turtles with [internet?] [
-      if random 100 < prob-infect [
-        become-infected (malwareToInfect - 1)
+  while [count turtles with [color = red] = 0] [
+    ifelse onlyAttackInternet [
+      ask turtles with [internet?] [
+        if random 100 < prob-infect [
+          become-infected (malwareToInfect - 1)
+        ]
       ]
     ]
-  ]
-  [
-    ask n-of initial-outbreak-size turtles [
-      if random 100 < prob-infect [
+    [
+      ask n-of initial-outbreak-size turtles [
         become-infected (random malwareTypes)
       ]
     ]
@@ -307,8 +310,8 @@ GRAPHICS-WINDOW
 20
 -20
 20
-1
-1
+0
+0
 1
 ticks
 30.0
@@ -322,7 +325,7 @@ gain-resistance-chance
 gain-resistance-chance
 0.0
 100
-48.0
+25.0
 1
 1
 %
@@ -337,7 +340,7 @@ recovery-chance
 recovery-chance
 0.0
 10.0
-4.8
+5.0
 0.1
 1
 %
@@ -352,7 +355,7 @@ virus-spread-chance
 virus-spread-chance
 0.0
 10.0
-10.0
+5.0
 0.1
 1
 %
@@ -421,7 +424,7 @@ number-of-nodes
 number-of-nodes
 10
 300
-140.0
+150.0
 5
 1
 NIL
@@ -436,7 +439,7 @@ virus-check-frequency
 virus-check-frequency
 1
 20
-1.0
+3.0
 1
 1
 ticks
@@ -513,7 +516,7 @@ BUTTON
 78
 go-tree
 go-tree
-T
+NIL
 1
 T
 OBSERVER
@@ -582,7 +585,7 @@ NIL
 10.0
 true
 true
-"" "let i 0\nrepeat malwareTypes [\n  create-temporary-plot-pen (word i)\n  plotxy ticks (count turtles with [item i health = 2 and color != white])\n  set-plot-pen-color (i * 10 + 5)\n  set i (i + 1)\n]"
+"" "let i 0\nrepeat malwareTypes [\n  create-temporary-plot-pen (word (i + 1))\n  plotxy ticks (count turtles with [item i health = 2 and color != white])\n  set-plot-pen-color ((i + 1) * 10 + 5)\n  set i (i + 1)\n]"
 PENS
 
 INPUTBOX
@@ -591,7 +594,7 @@ INPUTBOX
 918
 240
 shutdownChance
-10.0
+50.0
 1
 0
 Number
@@ -605,17 +608,17 @@ gain-susceptible-chance
 gain-susceptible-chance
 0
 100
-50.0
+25.0
 1
 1
 NIL
 HORIZONTAL
 
 INPUTBOX
-756
-355
-917
-415
+743
+290
+904
+350
 malwareToInfect
 2.0
 1
@@ -639,17 +642,6 @@ NIL
 NIL
 1
 
-INPUTBOX
-756
-292
-917
-352
-attack-duration
-3.0
-1
-0
-Number
-
 SLIDER
 949
 465
@@ -666,10 +658,10 @@ prob-infect
 HORIZONTAL
 
 BUTTON
-741
-419
-931
-452
+743
+388
+933
+421
 NIL
 launch-random-attack
 NIL
@@ -683,13 +675,13 @@ NIL
 1
 
 SWITCH
-742
-456
-931
-489
+744
+353
+933
+386
 onlyAttackInternet
 onlyAttackInternet
-1
+0
 1
 -1000
 
@@ -700,7 +692,7 @@ BUTTON
 78
 NIL
 go-ring
-T
+NIL
 1
 T
 OBSERVER
@@ -709,6 +701,35 @@ NIL
 NIL
 NIL
 1
+
+PLOT
+1325
+84
+1744
+411
+Network Links
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Links" 1.0 0 -16777216 true "" "plot count links"
+
+MONITOR
+1326
+412
+1383
+457
+Links
+count links
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1078,6 +1099,242 @@ NetLogo 6.0.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="experimentRandom" repetitions="5" runMetricsEveryStep="false">
+    <setup>setup
+set numLinks count links
+launch-random-attack</setup>
+    <go>go</go>
+    <exitCondition>count turtles with [color = red] = 0 or count links = 0</exitCondition>
+    <metric>count links / numLinks</metric>
+    <enumeratedValueSet variable="malwareToInfect">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-nodes">
+      <value value="150"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="gain-resistance-chance">
+      <value value="25"/>
+      <value value="50"/>
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-node-degree">
+      <value value="6"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="virus-spread-chance">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="malwareTypes">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="recovery-chance">
+      <value value="5"/>
+      <value value="10"/>
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="onlyAttackInternet">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-outbreak-size">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-infect">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="virus-check-frequency">
+      <value value="1"/>
+      <value value="3"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="gain-susceptible-chance">
+      <value value="25"/>
+      <value value="50"/>
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="shutdownChance">
+      <value value="10"/>
+      <value value="25"/>
+      <value value="50"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experimentMesh" repetitions="5" runMetricsEveryStep="false">
+    <setup>setup-mesh
+set numLinks count links
+launch-random-attack</setup>
+    <go>go</go>
+    <exitCondition>count turtles with [color = red] = 0 or count links = 0</exitCondition>
+    <metric>count links / numLinks</metric>
+    <enumeratedValueSet variable="malwareToInfect">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-nodes">
+      <value value="150"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="gain-resistance-chance">
+      <value value="25"/>
+      <value value="50"/>
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-node-degree">
+      <value value="6"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="virus-spread-chance">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="malwareTypes">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="recovery-chance">
+      <value value="5"/>
+      <value value="10"/>
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="onlyAttackInternet">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-outbreak-size">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-infect">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="virus-check-frequency">
+      <value value="1"/>
+      <value value="3"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="gain-susceptible-chance">
+      <value value="25"/>
+      <value value="50"/>
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="shutdownChance">
+      <value value="10"/>
+      <value value="25"/>
+      <value value="50"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experimentTree" repetitions="5" runMetricsEveryStep="false">
+    <setup>setup-tree
+go-tree
+set numLinks count links
+launch-random-attack</setup>
+    <go>go</go>
+    <exitCondition>count turtles with [color = red] = 0 or count links = 0</exitCondition>
+    <metric>count links / numLinks</metric>
+    <enumeratedValueSet variable="malwareToInfect">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-nodes">
+      <value value="150"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="gain-resistance-chance">
+      <value value="25"/>
+      <value value="50"/>
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-node-degree">
+      <value value="6"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="virus-spread-chance">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="malwareTypes">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="recovery-chance">
+      <value value="5"/>
+      <value value="10"/>
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="onlyAttackInternet">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-outbreak-size">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-infect">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="virus-check-frequency">
+      <value value="1"/>
+      <value value="3"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="gain-susceptible-chance">
+      <value value="25"/>
+      <value value="50"/>
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="shutdownChance">
+      <value value="10"/>
+      <value value="25"/>
+      <value value="50"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experimentRing" repetitions="5" runMetricsEveryStep="false">
+    <setup>setup-ring
+go-ring
+set numLinks count links
+launch-random-attack</setup>
+    <go>go</go>
+    <exitCondition>count turtles with [color = red] = 0 or count links = 0</exitCondition>
+    <metric>count links / numLinks</metric>
+    <enumeratedValueSet variable="malwareToInfect">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-nodes">
+      <value value="150"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="gain-resistance-chance">
+      <value value="25"/>
+      <value value="50"/>
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-node-degree">
+      <value value="6"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="virus-spread-chance">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="malwareTypes">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="recovery-chance">
+      <value value="5"/>
+      <value value="10"/>
+      <value value="15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="onlyAttackInternet">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-outbreak-size">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-infect">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="virus-check-frequency">
+      <value value="1"/>
+      <value value="3"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="gain-susceptible-chance">
+      <value value="25"/>
+      <value value="50"/>
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="shutdownChance">
+      <value value="10"/>
+      <value value="25"/>
+      <value value="50"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
