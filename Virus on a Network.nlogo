@@ -263,7 +263,7 @@ to launch-specific-attack
     ]
     [
       ask n-of initial-outbreak-size turtles [
-        become-infected (random malwareTypes)
+        become-infected (malwareToInfect - 1)
       ]
     ]
   ]
@@ -274,7 +274,7 @@ to launch-random-attack
     ifelse onlyAttackInternet [
       ask turtles with [internet?] [
         if random 100 < prob-infect [
-          become-infected (malwareToInfect - 1)
+          become-infected (random malwareTypes)
         ]
       ]
     ]
@@ -325,7 +325,7 @@ gain-resistance-chance
 gain-resistance-chance
 0.0
 100
-25.0
+75.0
 1
 1
 %
@@ -340,7 +340,7 @@ recovery-chance
 recovery-chance
 0.0
 10.0
-5.0
+15.0
 0.1
 1
 %
@@ -439,7 +439,7 @@ virus-check-frequency
 virus-check-frequency
 1
 20
-3.0
+5.0
 1
 1
 ticks
@@ -608,7 +608,7 @@ gain-susceptible-chance
 gain-susceptible-chance
 0
 100
-25.0
+75.0
 1
 1
 NIL
@@ -681,7 +681,7 @@ SWITCH
 386
 onlyAttackInternet
 onlyAttackInternet
-0
+1
 1
 -1000
 
